@@ -83,7 +83,7 @@ func (x *Envelope) GetPubKey() []byte {
 
 type MessageData struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
-	MessageId string                 `protobuf:"bytes,1,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
+	MessageId []byte                 `protobuf:"bytes,1,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
 	OriginId  []byte                 `protobuf:"bytes,2,opt,name=origin_id,json=originId,proto3" json:"origin_id,omitempty"`
 	TargetId  []byte                 `protobuf:"bytes,3,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
 	Timestamp uint64                 `protobuf:"varint,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
@@ -134,11 +134,11 @@ func (*MessageData) Descriptor() ([]byte, []int) {
 	return file_internal_proto_message_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *MessageData) GetMessageId() string {
+func (x *MessageData) GetMessageId() []byte {
 	if x != nil {
 		return x.MessageId
 	}
-	return ""
+	return nil
 }
 
 func (x *MessageData) GetOriginId() []byte {
@@ -361,7 +361,7 @@ func (x *ChatMessage) GetEncryptedPayload() []byte {
 
 type Transaction struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	AssetId       string                 `protobuf:"bytes,1,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
+	AssetId       []byte                 `protobuf:"bytes,1,opt,name=asset_id,json=assetId,proto3" json:"asset_id,omitempty"`
 	Amount        uint64                 `protobuf:"varint,2,opt,name=amount,proto3" json:"amount,omitempty"`
 	Memo          string                 `protobuf:"bytes,3,opt,name=memo,proto3" json:"memo,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -398,11 +398,11 @@ func (*Transaction) Descriptor() ([]byte, []int) {
 	return file_internal_proto_message_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *Transaction) GetAssetId() string {
+func (x *Transaction) GetAssetId() []byte {
 	if x != nil {
 		return x.AssetId
 	}
-	return ""
+	return nil
 }
 
 func (x *Transaction) GetAmount() uint64 {
@@ -467,7 +467,7 @@ type HandshakeResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	PubKey        []byte                 `protobuf:"bytes,1,opt,name=pub_key,json=pubKey,proto3" json:"pub_key,omitempty"`
 	Signature     []byte                 `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
-	Version       string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
+	Version       uint32                 `protobuf:"varint,3,opt,name=version,proto3" json:"version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -516,11 +516,11 @@ func (x *HandshakeResponse) GetSignature() []byte {
 	return nil
 }
 
-func (x *HandshakeResponse) GetVersion() string {
+func (x *HandshakeResponse) GetVersion() uint32 {
 	if x != nil {
 		return x.Version
 	}
-	return ""
+	return 0
 }
 
 type Ping struct {
@@ -613,7 +613,7 @@ func (x *PeerList) GetPeers() []*PeerList_Peer {
 
 type Ack struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	RefMessageId  string                 `protobuf:"bytes,1,opt,name=ref_message_id,json=refMessageId,proto3" json:"ref_message_id,omitempty"`
+	RefMessageId  []byte                 `protobuf:"bytes,1,opt,name=ref_message_id,json=refMessageId,proto3" json:"ref_message_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -648,11 +648,11 @@ func (*Ack) Descriptor() ([]byte, []int) {
 	return file_internal_proto_message_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *Ack) GetRefMessageId() string {
+func (x *Ack) GetRefMessageId() []byte {
 	if x != nil {
 		return x.RefMessageId
 	}
-	return ""
+	return nil
 }
 
 type PeerInfo struct {
@@ -797,7 +797,7 @@ func (x *PeerResponse) GetPeers() []*PeerInfo {
 
 type PeerList_Peer struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	LastKnownAddr string                 `protobuf:"bytes,2,opt,name=last_known_addr,json=lastKnownAddr,proto3" json:"last_known_addr,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -833,11 +833,11 @@ func (*PeerList_Peer) Descriptor() ([]byte, []int) {
 	return file_internal_proto_message_proto_rawDescGZIP(), []int{7, 0}
 }
 
-func (x *PeerList_Peer) GetId() string {
+func (x *PeerList_Peer) GetId() []byte {
 	if x != nil {
 		return x.Id
 	}
-	return ""
+	return nil
 }
 
 func (x *PeerList_Peer) GetLastKnownAddr() string {
@@ -858,7 +858,7 @@ const file_internal_proto_message_proto_rawDesc = "" +
 	"\apub_key\x18\x03 \x01(\fR\x06pubKey\"\xe5\x04\n" +
 	"\vMessageData\x12\x1d\n" +
 	"\n" +
-	"message_id\x18\x01 \x01(\tR\tmessageId\x12\x1b\n" +
+	"message_id\x18\x01 \x01(\fR\tmessageId\x12\x1b\n" +
 	"\torigin_id\x18\x02 \x01(\fR\boriginId\x12\x1b\n" +
 	"\ttarget_id\x18\x03 \x01(\fR\btargetId\x12\x1c\n" +
 	"\ttimestamp\x18\x04 \x01(\x04R\ttimestamp\x12\x1b\n" +
@@ -877,7 +877,7 @@ const file_internal_proto_message_proto_rawDesc = "" +
 	"\vChatMessage\x12+\n" +
 	"\x11encrypted_payload\x18\x01 \x01(\fR\x10encryptedPayload\"T\n" +
 	"\vTransaction\x12\x19\n" +
-	"\basset_id\x18\x01 \x01(\tR\aassetId\x12\x16\n" +
+	"\basset_id\x18\x01 \x01(\fR\aassetId\x12\x16\n" +
 	"\x06amount\x18\x02 \x01(\x04R\x06amount\x12\x12\n" +
 	"\x04memo\x18\x03 \x01(\tR\x04memo\"%\n" +
 	"\rHandshakeInit\x12\x14\n" +
@@ -885,23 +885,23 @@ const file_internal_proto_message_proto_rawDesc = "" +
 	"\x11HandshakeResponse\x12\x17\n" +
 	"\apub_key\x18\x01 \x01(\fR\x06pubKey\x12\x1c\n" +
 	"\tsignature\x18\x02 \x01(\fR\tsignature\x12\x18\n" +
-	"\aversion\x18\x03 \x01(\tR\aversion\"\x1c\n" +
+	"\aversion\x18\x03 \x01(\rR\aversion\"\x1c\n" +
 	"\x04Ping\x12\x14\n" +
 	"\x05nonce\x18\x01 \x01(\x03R\x05nonce\"t\n" +
 	"\bPeerList\x12(\n" +
 	"\x05peers\x18\x01 \x03(\v2\x12.p2p.PeerList.PeerR\x05peers\x1a>\n" +
 	"\x04Peer\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12&\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\x12&\n" +
 	"\x0flast_known_addr\x18\x02 \x01(\tR\rlastKnownAddr\"+\n" +
 	"\x03Ack\x12$\n" +
-	"\x0eref_message_id\x18\x01 \x01(\tR\frefMessageId\"=\n" +
+	"\x0eref_message_id\x18\x01 \x01(\fR\frefMessageId\"=\n" +
 	"\bPeerInfo\x12\x17\n" +
 	"\apub_key\x18\x01 \x01(\fR\x06pubKey\x12\x18\n" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\"#\n" +
 	"\vPeerRequest\x12\x14\n" +
 	"\x05count\x18\x01 \x01(\rR\x05count\"3\n" +
 	"\fPeerResponse\x12#\n" +
-	"\x05peers\x18\x01 \x03(\v2\r.p2p.PeerInfoR\x05peersBCZAgithub.com/DmytroBuzhylov/P2PMessenger/internal/proto;internal_pbb\x06proto3"
+	"\x05peers\x18\x01 \x03(\v2\r.p2p.PeerInfoR\x05peersBCZAgithub.com/DmytroBuzhylov/echofog-core/internal/proto;internal_pbb\x06proto3"
 
 var (
 	file_internal_proto_message_proto_rawDescOnce sync.Once

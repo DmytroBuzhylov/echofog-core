@@ -98,7 +98,7 @@ const file_internal_crypto_security_keys_proto_rawDesc = "" +
 	"\x04salt\x18\x01 \x01(\fR\x04salt\x12\x14\n" +
 	"\x05nonce\x18\x02 \x01(\fR\x05nonce\x12#\n" +
 	"\rencrypted_key\x18\x03 \x01(\fR\fencryptedKey\x12\x1c\n" +
-	"\talgorithm\x18\x04 \x01(\tR\talgorithmB?Z=github.com/DmytroBuzhylov/P2PMessenger/internal/crypto;cryptob\x06proto3"
+	"\talgorithm\x18\x04 \x01(\tR\talgorithmB?Z=github.com/DmytroBuzhylov/echofog-core/internal/crypto;cryptob\x06proto3"
 
 var (
 	file_internal_crypto_security_keys_proto_rawDescOnce sync.Once

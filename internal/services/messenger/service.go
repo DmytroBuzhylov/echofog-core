@@ -1,14 +1,15 @@
 package messenger
 
 import (
-	"P2PMessenger/internal/crypto"
-	"P2PMessenger/internal/network"
-	"P2PMessenger/internal/p2p/gossip"
-	internal_pb "P2PMessenger/internal/proto"
-	"P2PMessenger/internal/storage"
-	"crypto/ed25519"
 	"log"
 	"time"
+
+	"github.com/DmytroBuzhylov/echofog-core/internal/crypto"
+	"github.com/DmytroBuzhylov/echofog-core/internal/network"
+	"github.com/DmytroBuzhylov/echofog-core/internal/p2p/gossip"
+	internal_pb "github.com/DmytroBuzhylov/echofog-core/internal/proto"
+	"github.com/DmytroBuzhylov/echofog-core/internal/storage"
+	"github.com/DmytroBuzhylov/echofog-core/pkg/api/types"
 
 	"github.com/google/uuid"
 )
@@ -17,10 +18,10 @@ type MessageService struct {
 	cryptoEngine *crypto.Engine
 	storage      storage.Storage
 	gsp          *gossip.Manager
-	myPrivKey    ed25519.PrivateKey
+	myPrivKey    types.PeerPrivateKey
 }
 
-func NewMessageService(myPrivKey ed25519.PrivateKey, cryptoEngine *crypto.Engine, storage storage.Storage, gsp *gossip.Manager) *MessageService {
+func NewMessageService(myPrivKey types.PeerPrivateKey, cryptoEngine *crypto.Engine, storage storage.Storage, gsp *gossip.Manager) *MessageService {
 	return &MessageService{
 		cryptoEngine: cryptoEngine,
 		storage:      storage,
@@ -29,10 +30,11 @@ func NewMessageService(myPrivKey ed25519.PrivateKey, cryptoEngine *crypto.Engine
 	}
 }
 
-func (s *MessageService) Handle(msg *internal_pb.MessageData, peerID string) {
+func (s *MessageService) Handle(msg *internal_pb.MessageData, peerID types.PeerID) {
 	encryptedPayload := msg.Payload.(*internal_pb.MessageData_ChatMessage).ChatMessage.GetEncryptedPayload()
 
-	data, err := s.cryptoEngine.Decrypt(encryptedPayload, msg.GetOriginId())
+	pubKey := types.PeerPublicKey(msg.GetOriginId())
+	data, err := s.cryptoEngine.Decrypt(encryptedPayload, pubKey)
 	if err != nil {
 		log.Println(err)
 		return
@@ -41,20 +43,28 @@ func (s *MessageService) Handle(msg *internal_pb.MessageData, peerID string) {
 	log.Println("Decrypted data: ", string(data))
 }
 
-func (s *MessageService) Send(toPeerID []byte, data []byte) error {
-	encryptData, err := s.cryptoEngine.Encrypt(data, toPeerID)
+func (s *MessageService) GetSubscribedTypes() []interface{} {
+	return []interface{}{
+		(*internal_pb.MessageData_ChatMessage)(nil),
+	}
+}
+func (s *MessageService) Send(toPeerPubKey types.PeerPublicKey, data []byte) error {
+	encryptData, err := s.cryptoEngine.Encrypt(data, toPeerPubKey)
 	if err != nil {
 		return err
 	}
 
-	chatMessage := s.PackChatMessage(encryptData, crypto.GetPublicKey(s.myPrivKey), toPeerID)
+	pubKey := types.PeerPrivateKeyToPublic(s.myPrivKey)
+
+	chatMessage := s.PackChatMessage(encryptData, pubKey[:], toPeerPubKey[:])
 	s.gsp.Broadcast(network.TypeChatMessage, chatMessage)
 	return nil
 }
 
 func (s *MessageService) PackChatMessage(encryptedPayload []byte, from []byte, to []byte) *internal_pb.MessageData {
+	id := uuid.New()
 	return &internal_pb.MessageData{
-		MessageId: uuid.NewString(),
+		MessageId: id[:],
 		OriginId:  from,
 		TargetId:  to,
 		Timestamp: uint64(time.Now().UnixNano()),

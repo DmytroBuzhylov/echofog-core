@@ -1,11 +1,11 @@
 package network
 
 import (
-	"P2PMessenger/internal/crypto"
-	internal_pb "P2PMessenger/internal/proto"
-	"crypto/ed25519"
 	"errors"
 
+	"github.com/DmytroBuzhylov/echofog-core/internal/crypto"
+	internal_pb "github.com/DmytroBuzhylov/echofog-core/internal/proto"
+	"github.com/DmytroBuzhylov/echofog-core/pkg/api/types"
 	"github.com/quic-go/quic-go"
 	"google.golang.org/protobuf/proto"
 )
@@ -27,39 +27,40 @@ func sendHandshake(stream *quic.Stream, nonce []byte) error {
 	return writeFrame(stream, TypeHandshake, data)
 }
 
-func checkHandshakeResponse(stream *quic.Stream, nonce []byte) ([]byte, error) {
+func checkHandshakeResponse(stream *quic.Stream, nonce []byte) (types.PeerPublicKey, error) {
 
 	msgType, protoData, err := readFrame(stream)
 	if err != nil {
-		return nil, err
+		return types.PeerPublicKey{}, err
 	}
 	if msgType != TypeHandshake {
-		return nil, errors.New("message type is not handshake")
+		return types.PeerPublicKey{}, errors.New("message type is not handshake")
 	}
 
 	var data internal_pb.MessageData
 	err = proto.Unmarshal(protoData, &data)
 	if err != nil {
-		return nil, err
+		return types.PeerPublicKey{}, err
 	}
 
 	switch msg := data.Payload.(type) {
 	case *internal_pb.MessageData_HandshakeResponse:
 		dataForVerify := append(nonce, msg.HandshakeResponse.GetPubKey()...)
+		pubKey := types.PeerPublicKey(msg.HandshakeResponse.GetPubKey())
 
-		ok := crypto.VerifySignature(msg.HandshakeResponse.GetPubKey(), dataForVerify, msg.HandshakeResponse.GetSignature())
+		ok := crypto.VerifySignature(pubKey, dataForVerify, msg.HandshakeResponse.GetSignature())
 		if !ok {
-			return nil, errors.New("invalid signature")
+			return types.PeerPublicKey{}, errors.New("invalid signature")
 		}
 
-		return msg.HandshakeResponse.GetPubKey(), nil
+		return types.PeerPublicKey(msg.HandshakeResponse.GetPubKey()), nil
 	default:
-		return nil, errors.New("invalid proto type")
+		return types.PeerPublicKey{}, errors.New("invalid proto type")
 	}
 
 }
 
-func acceptHandshake(stream *quic.Stream, privKey ed25519.PrivateKey) error {
+func acceptHandshake(stream *quic.Stream, privKey types.PeerPrivateKey, version uint32) error {
 	msgType, protoData, err := readFrame(stream)
 	if err != nil {
 		return err
@@ -78,16 +79,18 @@ func acceptHandshake(stream *quic.Stream, privKey ed25519.PrivateKey) error {
 		return errors.New("invalid proto type")
 	}
 
-	dataForSiganature := append(hs.HandshakeInit.GetNonce(), crypto.GetPublicKey(privKey)...)
+	myPubKey := types.PeerPrivateKeyToPublic(privKey)
 
-	signature := crypto.CreateSignature(dataForSiganature, privKey)
+	dataForSiganature := append(hs.HandshakeInit.GetNonce(), myPubKey[:]...)
+
+	signature := crypto.CreateSignature(dataForSiganature, privKey[:])
 
 	hsResp := &internal_pb.MessageData{
 		Payload: &internal_pb.MessageData_HandshakeResponse{
 			HandshakeResponse: &internal_pb.HandshakeResponse{
-				PubKey:    crypto.GetPublicKey(privKey),
+				PubKey:    myPubKey[:],
 				Signature: signature,
-				Version:   "1-0-0",
+				Version:   version,
 			},
 		},
 	}

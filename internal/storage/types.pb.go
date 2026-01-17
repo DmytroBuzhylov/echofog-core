@@ -99,7 +99,7 @@ const file_internal_storage_types_proto_rawDesc = "" +
 	"\x0flast_known_addr\x18\x02 \x01(\tR\rlastKnownAddr\x12\x1b\n" +
 	"\tlast_seen\x18\x03 \x01(\x04R\blastSeen\x12\x1f\n" +
 	"\vtrust_score\x18\x04 \x01(\rR\n" +
-	"trustScoreBAZ?github.com/DmytroBuzhylov/P2PMessenger/internal/storage;storageb\x06proto3"
+	"trustScoreBAZ?github.com/DmytroBuzhylov/echofog-core/internal/storage;storageb\x06proto3"
 
 var (
 	file_internal_storage_types_proto_rawDescOnce sync.Once

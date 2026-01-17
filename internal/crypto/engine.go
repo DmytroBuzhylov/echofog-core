@@ -9,7 +9,10 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"fmt"
+
 	"io"
+
+	"github.com/DmytroBuzhylov/echofog-core/pkg/api/types"
 
 	"filippo.io/edwards25519"
 	"golang.org/x/crypto/hkdf"
@@ -29,14 +32,10 @@ func edPrivToX25519(edPriv ed25519.PrivateKey) []byte {
 // EdPubKeyToX25519 Helper: Converts an Ed25519 public key to an X25519 public key
 // Input: []byte (32 bytes of Ed25519 Public Key)
 // Output: []byte (32 bytes of X25519 Public Key)
-func EdPubKeyToX25519(edPub []byte) ([]byte, error) {
-	if len(edPub) != ed25519.PublicKeySize {
-		return nil, fmt.Errorf("invalid ed25519 public key size")
-	}
-
+func EdPubKeyToX25519(edPub types.PeerPublicKey) ([]byte, error) {
 	pt := new(edwards25519.Point)
 
-	if _, err := pt.SetBytes(edPub); err != nil {
+	if _, err := pt.SetBytes(edPub[:]); err != nil {
 		return nil, fmt.Errorf("invalid ed25519 public key point: %w", err)
 	}
 
@@ -61,7 +60,7 @@ func NewEngine(identityKey ed25519.PrivateKey) (*Engine, error) {
 	}, nil
 }
 
-func (e *Engine) computeSharedKey(theirEdPub []byte) ([]byte, error) {
+func (e *Engine) computeSharedKey(theirEdPub types.PeerPublicKey) ([]byte, error) {
 	theirX25519Bytes, err := EdPubKeyToX25519(theirEdPub)
 	if err != nil {
 		return nil, err
@@ -87,7 +86,7 @@ func (e *Engine) computeSharedKey(theirEdPub []byte) ([]byte, error) {
 }
 
 // Encrypt accepts clear text and the recipient's Ed25519 key
-func (e *Engine) Encrypt(plaintext []byte, recipientEdPub []byte) ([]byte, error) {
+func (e *Engine) Encrypt(plaintext []byte, recipientEdPub types.PeerPublicKey) ([]byte, error) {
 	key, err := e.computeSharedKey(recipientEdPub)
 	if err != nil {
 		return nil, err
@@ -114,7 +113,7 @@ func (e *Engine) Encrypt(plaintext []byte, recipientEdPub []byte) ([]byte, error
 }
 
 // Decrypt accepts the ciphertext and the sender's Ed25519 key
-func (e *Engine) Decrypt(ciphertext []byte, senderEdPub []byte) ([]byte, error) {
+func (e *Engine) Decrypt(ciphertext []byte, senderEdPub types.PeerPublicKey) ([]byte, error) {
 	key, err := e.computeSharedKey(senderEdPub)
 	if err != nil {
 		return nil, err

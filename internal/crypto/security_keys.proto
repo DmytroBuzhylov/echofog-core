@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package crypto;
-option go_package = "github.com/DmytroBuzhylov/P2PMessenger/internal/crypto;crypto";
+option go_package = "github.com/DmytroBuzhylov/echofog-core/internal/crypto;crypto";
 
 message EncryptedPrivateKey {
   bytes salt = 1;

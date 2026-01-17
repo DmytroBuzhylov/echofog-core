@@ -1,23 +1,24 @@
 package p2p
 
 import (
-	"P2PMessenger/internal/dispatcher"
-	"P2PMessenger/internal/network"
-	internal_pb "P2PMessenger/internal/proto"
 	"context"
-	"crypto/ed25519"
 	"crypto/sha256"
-	"encoding/hex"
+
 	"log"
 	"sync"
+
+	"github.com/DmytroBuzhylov/echofog-core/internal/dispatcher"
+	"github.com/DmytroBuzhylov/echofog-core/internal/network"
+	internal_pb "github.com/DmytroBuzhylov/echofog-core/internal/proto"
+	"github.com/DmytroBuzhylov/echofog-core/pkg/api/types"
 
 	"google.golang.org/protobuf/proto"
 )
 
 type Peer struct {
 	transport *network.PeerWrapper
-	id        string
-	pubKey    ed25519.PublicKey
+	id        types.PeerID // this sha256 from ed25519 pub key
+	pubKey    types.PeerPublicKey
 	addr      string
 	isOut     bool
 
@@ -29,16 +30,18 @@ type Peer struct {
 	isReady bool
 
 	dispatcher *dispatcher.Dispatcher
+
+	//handshakeSignal chan struct{}
+	//handshakeOnce   sync.Once
 }
 
-func NewPeer(peerID []byte, dispatcher *dispatcher.Dispatcher, addr string, isOut bool) *Peer {
+func NewPeer(peerPubKey types.PeerPublicKey, dispatcher *dispatcher.Dispatcher, addr string, isOut bool) *Peer {
 	ctx, cancel := context.WithCancel(context.Background())
-	hash := sha256.Sum256(peerID)
-	id := hex.EncodeToString(hash[:])
+	hashID := sha256.Sum256(peerPubKey[:])
 
 	return &Peer{
-		id:         id,
-		pubKey:     ed25519.PublicKey(peerID),
+		id:         hashID,
+		pubKey:     peerPubKey,
 		addr:       addr,
 		isOut:      isOut,
 		sendChan:   make(chan *internal_pb.Envelope, 100),
@@ -57,15 +60,11 @@ func (p *Peer) SetTransport(transport *network.PeerWrapper) {
 	p.addr = transport.RemoteAddr().String()
 }
 
-func (p *Peer) ID() string {
+func (p *Peer) ID() types.PeerID {
 	return p.id
 }
 
-func (p *Peer) PubKey() []byte {
-	return p.pubKey
-}
-
-func (p *Peer) Key() ed25519.PublicKey {
+func (p *Peer) PubKey() types.PeerPublicKey {
 	return p.pubKey
 }
 
@@ -73,8 +72,8 @@ func (p *Peer) Addr() string {
 	return p.addr
 }
 
-func (p *Peer) Send(msgType network.MessageType, env *internal_pb.MessageData) error {
-	data, err := proto.Marshal(env)
+func (p *Peer) Send(msgType network.MessageType, msgData *internal_pb.Envelope) error {
+	data, err := proto.Marshal(msgData)
 	if err != nil {
 		log.Println(err)
 		return err

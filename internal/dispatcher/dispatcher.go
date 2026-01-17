@@ -1,17 +1,22 @@
 package dispatcher
 
 import (
-	"P2PMessenger/internal/crypto"
-	internal_pb "P2PMessenger/internal/proto"
-	"crypto/ed25519"
+	"context"
+
 	"log"
+	"reflect"
+	"runtime"
 	"sync"
+
+	"github.com/DmytroBuzhylov/echofog-core/internal/crypto"
+	internal_pb "github.com/DmytroBuzhylov/echofog-core/internal/proto"
+	"github.com/DmytroBuzhylov/echofog-core/pkg/api/types"
 
 	"google.golang.org/protobuf/proto"
 )
 
 type Handler interface {
-	Handle(msg *internal_pb.MessageData, peerID string)
+	Handle(msg *internal_pb.MessageData, peerID types.PeerID)
 }
 
 type Dispatcher struct {
@@ -19,45 +24,74 @@ type Dispatcher struct {
 	ingressChan chan IngressPacket
 
 	handlersMu sync.RWMutex
-	handlers   map[string]Handler // string = payload type
+	handlers   map[reflect.Type]Handler // string = payload type
+
+	workersNum int
+	ctx        context.Context
+	cancel     context.CancelFunc
 }
 
 type IngressPacket struct {
-	Envelope       *internal_pb.Envelope
-	FromPeerHashID string
+	Envelope *internal_pb.Envelope
+	PeerID   types.PeerID
 }
 
-func NewDispatcher() *Dispatcher {
+func NewDispatcher(ctx context.Context) *Dispatcher {
+	ctx, cancel := context.WithCancel(ctx)
+	workerNum := runtime.NumCPU() - 1
+	if workerNum < 0 {
+		workerNum = 1
+	}
 	return &Dispatcher{
-		ingressChan: make(chan IngressPacket, 1000),
-		handlers:    make(map[string]Handler),
+		ingressChan: make(chan IngressPacket, 2000),
+		handlers:    make(map[reflect.Type]Handler),
+		workersNum:  workerNum,
+		ctx:         ctx,
+		cancel:      cancel,
 	}
 }
 
-func (d *Dispatcher) Registry(payloadType string, handler Handler) {
+func (d *Dispatcher) Registry(payloadProto interface{}, handler Handler) {
 	d.handlersMu.Lock()
 	defer d.handlersMu.Unlock()
-	d.handlers[payloadType] = handler
+	t := reflect.TypeOf(payloadProto)
+	d.handlers[t] = handler
 }
 
 // PushMessage calls Peer when it has read something from the network
-func (d *Dispatcher) PushMessage(env *internal_pb.Envelope, peerID string) {
-	d.ingressChan <- IngressPacket{
-		Envelope:       env,
-		FromPeerHashID: peerID,
+func (d *Dispatcher) PushMessage(env *internal_pb.Envelope, peerID types.PeerID) {
+	select {
+	case d.ingressChan <- IngressPacket{
+		Envelope: env,
+		PeerID:   peerID,
+	}:
+	default:
+		log.Println("Dispatcher queue full, dropping message from", peerID)
 	}
 }
 
 func (d *Dispatcher) Start() {
-	go func() {
-		for packet := range d.ingressChan {
-			d.processEnvelope(packet.Envelope, packet.FromPeerHashID)
-		}
-	}()
+	for i := 0; i < d.workersNum; i++ {
+		go d.workerLoop()
+	}
 }
 
-func (d *Dispatcher) processEnvelope(env *internal_pb.Envelope, fromPeer string) {
-	pubKey := ed25519.PublicKey(env.PubKey)
+func (d *Dispatcher) Stop() {
+	d.cancel()
+}
+
+func (d *Dispatcher) workerLoop() {
+	select {
+	case packet := <-d.ingressChan:
+		d.processPacket(packet)
+	case <-d.ctx.Done():
+		return
+	}
+}
+
+func (d *Dispatcher) processPacket(packet IngressPacket) {
+	env := packet.Envelope
+	pubKey := types.PeerPublicKey(env.PubKey)
 	if len(pubKey) != 32 || !crypto.VerifySignature(pubKey, env.Data, env.Signature) {
 		log.Printf("Security Alert: Invalid signature from peer!")
 		return
@@ -69,26 +103,11 @@ func (d *Dispatcher) processEnvelope(env *internal_pb.Envelope, fromPeer string)
 		return
 	}
 
-	d.route(&msgData, fromPeer)
+	d.route(&msgData, packet.PeerID)
 }
 
-func (d *Dispatcher) route(msg *internal_pb.MessageData, fromPeer string) {
-
-	var payloadType string
-
-	switch msg.Payload.(type) {
-	case *internal_pb.MessageData_ChatMessage:
-		payloadType = "ChatMessage"
-	case *internal_pb.MessageData_HandshakeResponse:
-		payloadType = "HandshakeResponse"
-	case *internal_pb.MessageData_PeerReq:
-		payloadType = "DiscoveryPeer"
-	case *internal_pb.MessageData_PeerRes:
-		payloadType = "DiscoveryPeer"
-	default:
-		log.Printf("Unknown payload type from %s", fromPeer)
-		return
-	}
+func (d *Dispatcher) route(msg *internal_pb.MessageData, fromPeer types.PeerID) {
+	payloadType := reflect.TypeOf(msg.Payload)
 
 	d.handlersMu.RLock()
 	handler, ok := d.handlers[payloadType]
@@ -96,5 +115,7 @@ func (d *Dispatcher) route(msg *internal_pb.MessageData, fromPeer string) {
 
 	if ok {
 		handler.Handle(msg, fromPeer)
+	} else {
+		log.Printf("No handler registered for type: %v", payloadType)
 	}
 }

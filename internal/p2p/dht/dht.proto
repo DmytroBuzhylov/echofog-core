@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package dht;
+option go_package = "github.com/DmytroBuzhylov/echofog-core/internal/p2p/dht;dht";
+
+message MerkleNode {
+  enum Type {
+    FILE_CHUNK = 0;
+    META_LINK = 1;
+  }
+  Type type = 1;
+  bytes data = 2;
+
+  repeated bytes links = 3;
+  uint64 size = 4;
+}
+
+
+message KBucket {
+  int32 index = 1;
+  repeated PeerStoreEntry peers = 2;
+}
+
+message PeerStoreEntry {
+  bytes pub_key = 1;
+  bytes hash_id = 2;
+  string last_known_addr = 3;
+  uint64 last_seen = 4;
+  uint32 trust_score = 5;
+}
+
+
+

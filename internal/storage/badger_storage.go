@@ -104,3 +104,17 @@ func (s *BadgerStorage) FindValues(prefix []byte) ([]interface{}, error) {
 	})
 	return values, err
 }
+
+func (s *BadgerStorage) Exists(key []byte) bool {
+	err := s.db.View(func(txn *badger.Txn) error {
+		_, err := txn.Get(key)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return false
+	}
+	return true
+}

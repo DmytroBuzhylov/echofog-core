@@ -1,7 +1,6 @@
 package crypto
 
 import (
-	"P2PMessenger/internal/storage"
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/tls"
@@ -14,6 +13,8 @@ import (
 	"log"
 	"math/big"
 	"time"
+
+	"github.com/DmytroBuzhylov/echofog-core/internal/storage"
 
 	"github.com/dgraph-io/badger/v4"
 	"golang.org/x/crypto/argon2"
@@ -81,12 +82,6 @@ func (s *SecureKeyStore) decryptPrivateKey(encryptedData []byte) (ed25519.Privat
 	}
 
 	return ed25519.PrivateKey(decrypted), nil
-}
-
-func GetPublicKey(privKey ed25519.PrivateKey) ed25519.PublicKey {
-	pubItf := privKey.Public()
-	pub := pubItf.(ed25519.PublicKey)
-	return pub
 }
 
 // GetOrGenerateKeys loads keys from a file or creates new ones
@@ -158,11 +153,6 @@ func GenerateTLSConfig(priv ed25519.PrivateKey) (*tls.Config, error) {
 		ClientAuth:         tls.RequestClientCert,
 		InsecureSkipVerify: true,
 		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-			cert, _ := x509.ParseCertificate(rawCerts[0])
-
-			_ = cert
-			// TODO run a certificate check
-
 			return nil
 		},
 		ClientSessionCache: tls.NewLRUClientSessionCache(100),

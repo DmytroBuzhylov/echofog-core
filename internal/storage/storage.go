@@ -5,4 +5,5 @@ type Storage interface {
 	Get(key []byte) ([]byte, error)
 	Delete(key []byte) error
 	FindValues(prefix []byte) ([]interface{}, error)
+	Exists(key []byte) bool
 }

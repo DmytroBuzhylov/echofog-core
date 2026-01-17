@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package api_pb;
+option go_package = "github.com/DmytroBuzhylov/echofog-core/api/proto;api_pb";
+
+
+message ContentMessage {
+  oneof payload {
+    SessionInitRequest init_req = 1;
+    SessionInitResponse init_res = 2;
+    ChunkRequest chunk_req = 3;
+    ChunkResponse chunk_res = 4;
+  }
+}
+
+message SessionInitRequest {
+  bytes root_hash = 1;
+  uint32 desired_streams = 2;
+  uint32 protocol_version = 3;
+}
+
+message SessionInitResponse {
+  bool accepted = 1;
+  uint32 allowed_streams = 2;
+  uint64 file_size = 3;
+  bytes session_id = 4;
+}
+message ChunkRequest {
+  bytes session_id = 1;
+  bytes chunk_hash = 2;
+}
+
+message ChunkResponse {
+  bytes data = 1;
+  bool found = 2;
+}
